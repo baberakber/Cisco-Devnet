@@ -1,0 +1,23 @@
+from netmiko import ConnectHandler
+
+# List of device connection details
+devices = [
+    {
+        'device_type': 'cisco_ios',
+        'host': '192.168.1.1',
+        'username': 'admin',
+        'password': 'password',
+    },
+    {
+        'device_type': 'cisco_ios',
+        'host': '192.168.1.2',
+        'username': 'admin',
+        'password': 'password',
+    },
+]
+
+# Loop through each device and run a command
+for device in devices:
+    net_connect = ConnectHandler(**device)
+    output = net_connect.send_command("show ip interface brief")
+    print(f"Device: {device['host']}\n{output}\n")
