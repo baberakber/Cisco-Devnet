@@ -113,8 +113,29 @@ if __name__ == "__main__":
 4) load_devices():
 
     This function loads device connection details from a JSON file. Each device has details like hostname, username, password, and device type.
-    
 5) Example Usage:
 
        Example 1: Run a show command (show ip interface brief) on all devices, saving the output to files.
        Example 2: Apply configuration changes (interface description) to all devices.
+
+
+========
+Overall Flow of Arguments (Bottom to Top Summary):
+Main Block:
+
+    devices (loaded from JSON), command, and output_file_prefix are passed to run_concurrently().
+run_concurrently():
+
+    Loops through devices, passing each device_info, command, and output_file to handle_device().
+handle_device():
+
+    Instantiates a NetworkDevice object with device_info, then passes command and output_file to methods like send_command() and save_output().
+
+NetworkDevice Class:
+
+    Uses device_info to establish the connection.
+    Executes command on the device and optionally saves the output to a file.
+
+The script passes arguments from function to function and then into the class methods. Each step takes the necessary inputs to handle device connections, execute commands, and save results.
+    
+
