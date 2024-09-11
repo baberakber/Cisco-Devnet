@@ -1,0 +1,111 @@
+from netmiko import ConnectHandler, NetmikoTimeoutException, NetmikoAuthenticationException
+import getpass
+import logging
+
+# Setup logging
+logging.basicConfig(filename="network_config_errors.log", level=logging.ERROR)
+
+# Function to get device details from user input
+def get_device_info():
+    device = {
+        'device_type': 'cisco_ios',  # Adjust according to your device
+        'host': input("Enter device IP: "),
+        'username': input("Enter your username: "),
+        'password': getpass.getpass("Enter your SSH password: "),
+        'secret': getpass.getpass("Enter your enable password (if required): "),  # For enable mode
+    }
+    return device
+
+# Function to configure loopback interface
+def configure_loopback(net_connect):
+    loopback_number = input("Enter Loopback interface number (e.g., 0): ")
+    ip_address = input("Enter Loopback IP address (e.g., 10.1.1.1): ")
+    subnet_mask = input("Enter subnet mask (e.g., 255.255.255.0): ")
+
+    config_commands = [
+        f"interface Loopback{loopback_number}",
+        f"ip address {ip_address} {subnet_mask}",
+        "no shutdown"
+    ]
+
+    try:
+        output = net_connect.send_config_set(config_commands)
+        print(f"Configured Loopback{loopback_number} successfully.\n{output}")
+    except Exception as e:
+        logging.error(f"Failed to configure Loopback{loopback_number}: {e}")
+
+# Function to configure physical interface
+def configure_physical_interface(net_connect):
+    interface = input("Enter the physical interface (e.g., GigabitEthernet0/1): ")
+    ip_address = input("Enter interface IP address (e.g., 192.168.1.1): ")
+    subnet_mask = input("Enter subnet mask (e.g., 255.255.255.0): ")
+
+    config_commands = [
+        f"interface {interface}",
+        f"ip address {ip_address} {subnet_mask}",
+        "no shutdown"
+    ]
+
+    try:
+        output = net_connect.send_config_set(config_commands)
+        print(f"Configured {interface} successfully.\n{output}")
+    except Exception as e:
+        logging.error(f"Failed to configure {interface}: {e}")
+
+# Main function to connect to the router and configure based on user input
+def main():
+    device = get_device_info()
+
+    try:
+        # Establish connection to the device
+        net_connect = ConnectHandler(**device)
+
+        # Enter enable mode
+        if device.get('secret'):
+            net_connect.enable()
+
+        # Prompt user for choice of configuration
+        print("What do you want to configure?")
+        print("1: Loopback Interface")
+        print("2: Physical Interface")
+
+        choice = input("Enter your choice (1 or 2): ")
+
+        if choice == "1":
+            configure_loopback(net_connect)
+        elif choice == "2":
+            configure_physical_interface(net_connect)
+        else:
+            print("Invalid choice.")
+
+        # Disconnect from the device
+        net_connect.disconnect()
+
+    except NetmikoTimeoutException:
+        print("Connection timed out.")
+        logging.error("Connection to device timed out.")
+    except NetmikoAuthenticationException:
+        print("Authentication failed.")
+        logging.error("Authentication failed for device.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        logging.error(f"General error: {e}")
+
+if __name__ == "__main__":
+    main()
+============
+
+Sample Output:
+
+Enter device IP: 192.168.1.1
+Enter your username: admin
+Enter your SSH password: ****
+Enter your enable password (if required): ****
+What do you want to configure?
+1: Loopback Interface
+2: Physical Interface
+Enter your choice (1 or 2): 1
+Enter Loopback interface number (e.g., 0): 0
+Enter Loopback IP address (e.g., 10.1.1.1): 10.1.1.1
+Enter subnet mask (e.g., 255.255.255.0): 255.255.255.0
+Configured Loopback0 successfully.
