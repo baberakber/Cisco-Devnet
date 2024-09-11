@@ -1,0 +1,17 @@
+# For commands that require user interaction, such as confirmations, we can use send_command_timing() to control the interaction manually.
+from netmiko import ConnectHandler
+
+device = {
+    'device_type': 'cisco_ios',
+    'host': '192.168.1.1',
+    'username': 'admin',
+    'password': 'password',
+}
+
+net_connect = ConnectHandler(**device)
+output = net_connect.send_command_timing("copy running-config startup-config")
+
+if "Destination filename" in output:
+    output += net_connect.send_command_timing("\n")  # Sends newline to confirm
+print(output)
+
