@@ -1,0 +1,120 @@
+from netmiko import ConnectHandler, NetmikoTimeoutException, NetmikoAuthenticationException
+from concurrent.futures import ThreadPoolExecutor
+import json
+
+class NetworkDevice:
+    def __init__(self, device_info):
+        self.device_info = device_info
+        self.connection = None
+
+    def connect(self):
+        try:
+            print(f"Connecting to {self.device_info['host']}...")
+            self.connection = ConnectHandler(**self.device_info)
+        except NetmikoTimeoutException:
+            print(f"Connection to {self.device_info['host']} timed out.")
+        except NetmikoAuthenticationException:
+            print(f"Authentication failed for {self.device_info['host']}.")
+
+    def disconnect(self):
+        if self.connection:
+            self.connection.disconnect()
+            print(f"Disconnected from {self.device_info['host']}.")
+
+    def send_command(self, command):
+        if not self.connection:
+            print(f"Not connected to {self.device_info['host']}")
+            return
+        print(f"Sending command '{command}' to {self.device_info['host']}...")
+        return self.connection.send_command(command)
+
+    def send_config(self, config_commands):
+        if not self.connection:
+            print(f"Not connected to {self.device_info['host']}")
+            return
+        print(f"Sending configuration to {self.device_info['host']}...")
+        return self.connection.send_config_set(config_commands)
+
+    def save_output(self, command_output, filename):
+        print(f"Saving output to {filename}")
+        with open(filename, "w") as f:
+            f.write(command_output)
+
+# Function to handle device operations
+def handle_device(device_info, command, config_commands=None, output_file=None):
+    device = NetworkDevice(device_info)
+    device.connect()
+
+    if command:
+        output = device.send_command(command)
+        print(output)
+        if output_file:
+            device.save_output(output, output_file)
+
+    if config_commands:
+        output = device.send_config(config_commands)
+        print(output)
+
+    device.disconnect()
+
+# Run tasks concurrently
+def run_concurrently(devices, command=None, config_commands=None, output_file_prefix=None):
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        for device_info in devices:
+            output_file = None
+            if output_file_prefix:
+                output_file = f"{output_file_prefix}_{device_info['host']}.txt"
+            executor.submit(handle_device, device_info, command, config_commands, output_file)
+
+# Load device info from a JSON file
+def load_devices(filename):
+    with open(filename, "r") as f:
+        return json.load(f)
+
+# Example usage
+if __name__ == "__main__":
+    devices = load_devices("devices.json")  # JSON file containing device info
+
+    # Example 1: Run a show command on all devices and save output
+    run_concurrently(devices, command="show ip interface brief", output_file_prefix="interfaces")
+
+    # Example 2: Send configuration commands to all devices
+    config_commands = [
+        "interface GigabitEthernet0/1",
+        "description Configured via OOP",
+        "no shutdown"
+    ]
+    run_concurrently(devices, command=None, config_commands=config_commands)
+
+=========================================================================
+                           Explanation of Code:
+=========================================================================
+
+1) NetworkDevice Class:
+
+
+      1) The __init__ method initializes the object with the device info.
+      2) The connect() method establishes the SSH connection to the device.
+      3) The send_command() method sends a command (e.g., show commands) to the device.
+      4) The send_config() method sends configuration commands to the device.
+      5) The save_output() method saves the output to a file.
+      6) The disconnect() method closes the SSH connection.
+
+2) handle_device():
+
+     This function creates an instance of NetworkDevice for each device.
+     It connects to the device, runs commands, optionally saves output to a file, and sends configuration changes.
+
+3) run_concurrently():
+
+     This function runs tasks on multiple devices concurrently using Python’s ThreadPoolExecutor.
+     It can send commands, apply configuration changes, and save output to files simultaneously across many devices.
+
+4) load_devices():
+
+    This function loads device connection details from a JSON file. Each device has details like hostname, username, password, and device type.
+    
+5) Example Usage:
+
+       Example 1: Run a show command (show ip interface brief) on all devices, saving the output to files.
+       Example 2: Apply configuration changes (interface description) to all devices.
