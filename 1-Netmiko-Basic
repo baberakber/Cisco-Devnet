@@ -1,0 +1,14 @@
+# Basic Script: Connecting to a Single Device
+
+from netmiko import ConnectHandler
+
+cisco_device = {
+    'device_type': 'cisco_ios',
+    'host': '192.168.1.1',
+    'username': 'admin',
+    'password': 'password',
+}
+
+net_connect = ConnectHandler(**cisco_device)
+output = net_connect.send_command("show ip interface brief")
+print(output)
